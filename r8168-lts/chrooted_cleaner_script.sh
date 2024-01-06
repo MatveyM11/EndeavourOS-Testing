@@ -318,39 +318,39 @@ _install_extra_drivers_to_target() {
 
 
 
-    # Function to check if LTS kernel is installed
-_is_lts_kernel_installed() {
-    if pacman -Qi linux-lts &> /dev/null; then
-        return 0 # LTS kernel is installed
-    else
-        return 1 # LTS kernel is not installed
+  # Function to check if LTS kernel is installed
+    _is_lts_kernel_installed() {
+        if pacman -Qi linux-lts &> /dev/null; then
+            return 0 # LTS kernel is installed
+        else
+            return 1 # LTS kernel is not installed
+        fi
+    }
+
+    # Handle the r8168 package.
+    if [ -r /tmp/r8168_in_use ] ; then
+        # We must install r8168 now.
+        if _is_offline_mode ; then
+            # Install using the copied r8168 package.
+            pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+            if [ -n "$pkg" ] ; then
+                _pkg_msg install "r8168 (offline)"
+                pacman -U --noconfirm $pkg
+            else
+                _c_c_s_msg error "no r8168 package in folder $dir!"
+            fi
+        else
+            # Install r8168 package from the mirrors.
+            _install_needed_packages r8168
+
+            # Check if LTS kernel is installed
+            if _is_lts_kernel_installed ; then
+                # Install r8168-lts package from the mirrors
+                _install_needed_packages r8168-lts
+            fi
+        fi
     fi
 }
-
-# Handle the r8168 package.
-if [ -r /tmp/r8168_in_use ] ; then
-    # We must install r8168 now.
-    if _is_offline_mode ; then
-        # Install using the copied r8168 package.
-        pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-        if [ -n "$pkg" ] ; then
-            _pkg_msg install "r8168 (offline)"
-            pacman -U --noconfirm $pkg
-        else
-            _c_c_s_msg error "no r8168 package in folder $dir!"
-        fi
-    else
-        # Install r8168 package from the mirrors.
-        _install_needed_packages r8168
-
-        # Check if LTS kernel is installed
-        if _is_lts_kernel_installed ; then
-            # Install r8168-lts package from the mirrors
-            _install_needed_packages r8168-lts
-        fi
-    fi
-fi
-
 
 
 _install_more_firmware() {
