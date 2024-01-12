@@ -105,55 +105,55 @@ _virtual_machines() {
     local pkgs_vbox="virtualbox-guest-utils"
     local pkgs_qemu="qemu-guest-agent spice-vdagent"
     local pkgs_vmware="open-vm-tools xf86-input-vmmouse"
-
+    
     [ -n "$detected_vm" ] || detected_vm="$(device-info --vm)"
-
+    
     case "$detected_vm" in               # 2021-Sep-30: device-info may output one of: "virtualbox", "qemu", "kvm", "vmware" or ""
         virtualbox)
             _c_c_s_msg info "VirtualBox VM detected."
             _virt_remove $pkgs_qemu $pkgs_vmware $pkgs_remove_from_vm
             _install_needed_packages $pkgs_vbox $pkgs_common
             _sway_in_vm_settings           # Note: sway requires enabling 3D support for the vbox virtual machine!
-            ;;
+        ;;
         vmware)
             _c_c_s_msg info "VmWare VM detected."
             _virt_remove $pkgs_qemu $pkgs_vbox $pkgs_remove_from_vm
             _install_needed_packages $pkgs_vmware $pkgs_common
             _sway_in_vm_settings
-            ;;
+        ;;
         qemu)
             # common pkgs ??
             _c_c_s_msg info "Qemu VM detected."
             _virt_remove $pkgs_vmware $pkgs_vbox $pkgs_common $pkgs_remove_from_vm
             _install_needed_packages $pkgs_qemu
             _sway_in_vm_settings
-            ;;
+        ;;
         kvm)
             _c_c_s_msg info "Kvm VM detected."
             if [ -n "$(lspci -vnn | grep -iw "qemu virtual machine")" ] ; then
                 $FUNCNAME qemu
             else
-                 _virt_remove $pkgs_remove_from_vm
+                _virt_remove $pkgs_remove_from_vm
                 _install_needed_packages $pkgs_qemu $pkgs_vbox $pkgs_common   # ???
                 _sway_in_vm_settings
             fi
-            ;;
+        ;;
         *)
             _c_c_s_msg info "VM not detected."
             _virt_remove $pkgs_vbox $pkgs_qemu $pkgs_vmware $pkgs_common
-            ;;
+        ;;
     esac
 }
 
 _sed_stuff(){
-
+    
     # Journal for offline. Turn volatile (for iso) into a real system.
     sed -i 's/volatile/auto/g' /etc/systemd/journald.conf 2>>/tmp/.errlog
     sed -i 's/.*pam_wheel\.so/#&/' /etc/pam.d/su
 }
 
 _clean_archiso(){
-
+    
     local _files_to_remove=(
         /etc/sudoers.d/g_wheel
         /var/lib/NetworkManager/NetworkManager.state
@@ -169,28 +169,28 @@ _clean_archiso(){
         /{gpg.conf,gpg-agent.conf,pubring.gpg,secring.gpg}
         /version
     )
-
+    
     local xx
-
+    
     for xx in ${_files_to_remove[*]}; do rm -rf $xx; done
-
+    
     find /usr/lib/initcpio -name archiso* -type f -exec rm '{}' \;
-
+    
 }
 
 _clean_offline_packages(){
-
+    
     local packages_to_remove=(
-
+        
         # BASE
-
+        
         ## Base system
         edk2-shell
-
+        
         # SOFTWARE
-
+        
         # ISO
-
+        
         ## Live iso specific
         arch-install-scripts
         memtest86+
@@ -199,29 +199,29 @@ _clean_offline_packages(){
         mkinitcpio-busybox
         pv
         syslinux
-
+        
         ## Live iso tools
         clonezilla
         gpart
         grsync
         hdparm
-	partitionmanager
-
+        partitionmanager
+        
         # ENDEAVOUROS REPO
-
+        
         ## General
         rate-mirrors
-
+        
         ## Calamares EndeavourOS
         $(pacman -Qq | grep calamares)        # finds calamares related packages
         ckbcomp
-
+        
         # arm qemu dependency
         qemu-arm-aarch64-static-bin
     )
-
+    
     pacman -Rsn --noconfirm "${packages_to_remove[@]}"
-
+    
 }
 
 _is_offline_mode() {
@@ -235,28 +235,28 @@ _is_online_mode() { ! _is_offline_mode ; }
 
 
 _check_install_mode(){
-
+    
     if _is_online_mode ; then
         local INSTALL_OPTION="ONLINE_MODE"
     else
         local INSTALL_OPTION="OFFLINE_MODE"
     fi
-
+    
     case "$INSTALL_OPTION" in
         OFFLINE_MODE)
-                _clean_archiso
-                chown $NEW_USER:$NEW_USER /home/$NEW_USER/.bashrc
-                _sed_stuff
-                _clean_offline_packages
-            ;;
-
+            _clean_archiso
+            chown $NEW_USER:$NEW_USER /home/$NEW_USER/.bashrc
+            _sed_stuff
+            _clean_offline_packages
+        ;;
+        
         ONLINE_MODE)
-                # not implemented yet. For now run functions at "SCRIPT STARTS HERE"
-                :
-                # all systemd are enabled - can be specific offline/online in the future
-            ;;
+            # not implemented yet. For now run functions at "SCRIPT STARTS HERE"
+            :
+            # all systemd are enabled - can be specific offline/online in the future
+        ;;
         *)
-            ;;
+        ;;
     esac
 }
 
@@ -268,13 +268,13 @@ _remove_ucode(){
 _remove_other_graphics_drivers() {
     local graphics="$(device-info --vga ; device-info --display)"
     local amd=no
-
+    
     # remove AMD graphics driver if it is not needed
     if [ -n "$(echo "$graphics" | grep "Advanced Micro Devices")" ] ; then
         amd=yes
-    elif [ -n "$(echo "$graphics" | grep "AMD/ATI")" ] ; then
+        elif [ -n "$(echo "$graphics" | grep "AMD/ATI")" ] ; then
         amd=yes
-    elif [ -n "$(echo "$graphics" | grep "Radeon")" ] ; then
+        elif [ -n "$(echo "$graphics" | grep "Radeon")" ] ; then
         amd=yes
     fi
     if [ "$amd" = "no" ] ; then
@@ -287,17 +287,17 @@ _remove_broadcom_wifi_driver_old() {
     local pkgname=broadcom-wl-dkms
     local wifi_pci
     local wifi_driver
-
+    
     # _is_pkg_installed $pkgname && {
-        wifi_pci="$(lspci -k | grep -A4 " Network controller: ")"
-        if [ -n "$(lsusb | grep " Broadcom ")" ] || [ -n "$(echo "$wifi_pci" | grep " Broadcom ")" ] ; then
-            return
-        fi
-        wifi_driver="$(echo "$wifi_pci" | grep "Kernel driver in use")"
-        if [ -n "$(echo "$wifi_driver" | grep "in use: wl$")" ] ; then
-            return
-        fi
-        _remove_a_pkg $pkgname
+    wifi_pci="$(lspci -k | grep -A4 " Network controller: ")"
+    if [ -n "$(lsusb | grep " Broadcom ")" ] || [ -n "$(echo "$wifi_pci" | grep " Broadcom ")" ] ; then
+        return
+    fi
+    wifi_driver="$(echo "$wifi_pci" | grep "Kernel driver in use")"
+    if [ -n "$(echo "$wifi_driver" | grep "in use: wl$")" ] ; then
+        return
+    fi
+    _remove_a_pkg $pkgname
     # }
 }
 
@@ -312,33 +312,57 @@ _remove_broadcom_wifi_driver() {
 _install_extra_drivers_to_target() {
     # Install special drivers to target if needed.
     # The drivers exist on the ISO and were copied to the target.
-
+    
     local dir=/opt/extra-drivers
     local pkg
-
-    # Handle the r8168 package.
-    if [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then
-        # We must install r8168 now.
-	_install_needed_packages r8168-lts
-        if _is_offline_mode ; then
-            # Install using the copied r8168 package.
-            pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-            if [ -n "$pkg" ] ; then
-                _pkg_msg install "r8168 (offline)"
-                pacman -U --noconfirm $pkg
-            else
-                _c_c_s_msg error "no r8168 package in folder $dir!"
-            fi
-        else
-            # Install r8168 package from the mirrors.
+    
+    if [[ $(lspci | grep -i 'Ethernet.*Realtek.*8168' &>/dev/null) ]] ; then
+        
+        # Handle the r8168 package.
+        if ! [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel not installed
+            # We must install r8168 now.
             _install_needed_packages r8168
+            if _is_offline_mode ; then
+                # Install using the copied r8168 package.
+                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+                if [ -n "$pkg" ] ; then
+                    _pkg_msg install "r8168 (offline)"
+                    pacman -U --noconfirm $pkg
+                else
+                    _c_c_s_msg error "no r8168 package in folder $dir!"
+                fi
+            else
+                # Install r8168 package from the mirrors.
+                _install_needed_packages r8168
+            fi
         fi
+        
+        
+        # Handle the r8168 package.
+        if [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel installed
+            # We must install r8168 now.
+            _install_needed_packages r8168-lts
+            if _is_offline_mode ; then
+                # Install using the copied r8168 package.
+                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+                if [ -n "$pkg" ] ; then
+                    _pkg_msg install "r8168 (offline)"
+                    pacman -U --noconfirm $pkg
+                else
+                    _c_c_s_msg error "no r8168 package in folder $dir!"
+                fi
+            else
+                # Install r8168 package from the mirrors.
+                _install_needed_packages r8168
+            fi
+        fi
+        
     fi
 }
 
 _install_more_firmware() {
     # Install possibly missing firmware packages based on detected hardware
-
+    
     if [ -n "$(lspci -k | grep "Kernel driver in use: mwifiex_pcie")" ] ; then    # e.g. Microsoft Surface Pro
         _install_needed_packages linux-firmware-marvell
     fi
@@ -351,7 +375,7 @@ _nvidia_remove() {
 
 _remove_nvidia_drivers() {
     local remove="pacman -Rsc --noconfirm"
-
+    
     if _is_offline_mode ; then
         # delete packages separately to avoid all failing if one fails
         [ -r /usr/share/licenses/nvidia-dkms/LICENSE ]      && _nvidia_remove nvidia-dkms
@@ -367,7 +391,7 @@ _manage_nvidia_packages() {
     local file=/tmp/nvidia-info.bash        # nvidia info from livesession
     local nvidia_card=""                    # these two variables are defined in $file
     local nvidia_driver=""
-
+    
     if [ ! -r $file ] ; then
         _c_c_s_msg warning "file $file does not exist!"
         _remove_nvidia_drivers
@@ -375,7 +399,7 @@ _manage_nvidia_packages() {
         source $file
         if [ "$nvidia_driver" = "no" ] ; then
             _remove_nvidia_drivers
-        elif [ "$nvidia_card" = "yes" ] ; then
+            elif [ "$nvidia_card" = "yes" ] ; then
             _install_needed_packages nvidia-inst nvidia-hook nvidia-dkms
         fi
     fi
@@ -383,7 +407,7 @@ _manage_nvidia_packages() {
 
 _run_if_exists_or_complain() {
     local app="$1"
-
+    
     if (which "$app" >& /dev/null) ; then
         _c_c_s_msg info "running $*"
         "$@"
@@ -402,7 +426,7 @@ _RunUserCommands() {
 
 _misc_cleanups() {
     # /etc/resolv.conf.pacnew may be unnecessary, so delete it
-
+    
     local file=/etc/resolv.conf.pacnew
     if [ -z "$(grep -Pv "^[ ]*#" $file 2>/dev/null)" ] ; then
         _c_c_s_msg info "removing file $file"
@@ -412,21 +436,21 @@ _misc_cleanups() {
 
 _clean_up(){
     local xx
-
+    
     # install or remove nvidia graphics stuff
     _manage_nvidia_packages
-
+    
     # remove AMD and Intel graphics drivers if they are not needed
     _remove_other_graphics_drivers
-
+    
     # remove broadcom-wl-dkms if it is not needed
     _remove_broadcom_wifi_driver
-
+    
     _install_extra_drivers_to_target
     _install_more_firmware
-
+    
     _misc_cleanups
-
+    
     # on the target, select file server based on country
     xx=/usr/bin/eos-select-file-server
     if [ -x $xx ] ; then
@@ -438,10 +462,10 @@ _clean_up(){
     else
         _c_c_s_msg warning "program $xx was not found"
     fi
-
+    
     # change log file permissions
     [ -r /var/log/Calamares.log ]         && chown root:root /var/log/Calamares.log
-
+    
     # run possible user-given commands
     _RunUserCommands
 }
@@ -449,9 +473,9 @@ _clean_up(){
 _show_info_about_installed_system() {
     local cmd
     local cmds=( "lsblk -f -o+SIZE"
-                 "fdisk -l"
-               )
-
+        "fdisk -l"
+    )
+    
     for cmd in "${cmds[@]}" ; do
         _c_c_s_msg info "$cmd"
         $cmd
@@ -475,46 +499,46 @@ _run_hotfix_end() {
 
 Main() {
     local filename=chrooted_cleaner_script.sh
-
+    
     _c_c_s_msg info "$filename started."
-
+    
     local i
     local NEW_USER="" INSTALL_TYPE="" BOOTLOADER=""
-
+    
     # parse the options
     for i in "$@"; do
         case $i in
             --user=*)
                 NEW_USER="${i#*=}"
                 shift
-                ;;
+            ;;
             --online)
                 INSTALL_TYPE="online"
                 shift
-                ;;
+            ;;
             --bootloader=*)
                 BOOTLOADER="${i#*=}"
-                ;;
+            ;;
         esac
     done
     if [ -z "$NEW_USER" ] ; then
         _c_c_s_msg error "new username is unknown!"
     fi
-
+    
     _check_install_mode
     _virtual_machines
     _clean_up
     _run_hotfix_end
     _show_info_about_installed_system
-
+    
     # Remove pacnew files
     find /etc -type f -name "*.pacnew" -exec rm {} \;
-
+    
     rm -rf /etc/calamares /opt/extra-drivers
-
+    
     # Remove device-info & eos-connection-checker if they aren't installed
     [[ $(pacman -Q eos-bash-shared  2</dev/null) ]] || rm /bin/device-info /bin/eos-connection-checker
-
+    
     _c_c_s_msg info "$filename done."
 }
 
