@@ -312,52 +312,36 @@ _remove_broadcom_wifi_driver() {
 _install_extra_drivers_to_target() {
     # Install special drivers to target if needed.
     # The drivers exist on the ISO and were copied to the target.
-    
+
     local dir=/opt/extra-drivers
     local pkg
     
-    if [[ $(-r /tmp/r8168_in_use) ]] ; then
-        
+    if [ -r /tmp/r8168_in_use ]; then
         # Handle the r8168 package.
-        if ! [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel not installed
-            # We must install r8168 now.
+        if ! pacman -Q linux-lts &>/dev/null; then
+            # lts-kernel not installed
             _install_needed_packages r8168
-            if _is_offline_mode ; then
-                # Install using the copied r8168 package.
-                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-                if [ -n "$pkg" ] ; then
-                    _pkg_msg install "r8168 (offline)"
-                    pacman -U --noconfirm $pkg
-                else
-                    _c_c_s_msg error "no r8168 package in folder $dir!"
-                fi
-            else
-                # Install r8168 package from the mirrors.
-                _install_needed_packages r8168
-            fi
-        fi
-        
-        
-        # Handle the r8168 package.
-        if [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel installed
-            # We must install r8168 now.
+        else
+            # lts-kernel installed
             _install_needed_packages r8168-lts
-            if _is_offline_mode ; then
-                # Install using the copied r8168 package.
-                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-                if [ -n "$pkg" ] ; then
-                    _pkg_msg install "r8168 (offline)"
-                    pacman -U --noconfirm $pkg
-                else
-                    _c_c_s_msg error "no r8168 package in folder $dir!"
-                fi
-            else
-                # Install r8168 package from the mirrors.
-                _install_needed_packages r8168
-            fi
         fi
-        
+
+    if [ -r /tmp/r8168_in_use ]; then
+        if _is_offline_mode; then
+            # Install using the copied r8168 package.
+            pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+            if [ -n "$pkg" ]; then
+                _pkg_msg install "r8168 (offline)"
+                pacman -U --noconfirm "$pkg"
+            else
+                _c_c_s_msg error "no r8168 package in folder $dir!"
+            fi
+        else
+            # Install r8168 package from the mirrors.
+            _install_needed_packages r8168
+        fi
     fi
+fi
 }
 
 _install_more_firmware() {
