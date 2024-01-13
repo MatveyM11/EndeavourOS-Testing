@@ -316,48 +316,47 @@ _install_extra_drivers_to_target() {
     local dir=/opt/extra-drivers
     local pkg
     
-    if [ -a /tmp/r8168_in_use ]; then
-        
-        # Handle the r8168 package.
-        if ! [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel not installed
-            # We must install r8168 now.
+    
+    
+    # Handle the r8168 package.
+    if ! [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel not installed
+        # We must install r8168 now.
+        _install_needed_packages r8168
+        if _is_offline_mode ; then
+            # Install using the copied r8168 package.
+            pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+            if [ -n "$pkg" ] ; then
+                _pkg_msg install "r8168 (offline)"
+                pacman -U --noconfirm $pkg
+            else
+                _c_c_s_msg error "no r8168 package in folder $dir!"
+            fi
+        else
+            # Install r8168 package from the mirrors.
             _install_needed_packages r8168
-            if _is_offline_mode ; then
-                # Install using the copied r8168 package.
-                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-                if [ -n "$pkg" ] ; then
-                    _pkg_msg install "r8168 (offline)"
-                    pacman -U --noconfirm $pkg
-                else
-                    _c_c_s_msg error "no r8168 package in folder $dir!"
-                fi
-            else
-                # Install r8168 package from the mirrors.
-                _install_needed_packages r8168
-            fi
         fi
-        
-        
-        # Handle the r8168 package.
-        if [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel installed
-            # We must install r8168 now.
-            _install_needed_packages r8168-lts
-            if _is_offline_mode ; then
-                # Install using the copied r8168 package.
-                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-                if [ -n "$pkg" ] ; then
-                    _pkg_msg install "r8168 (offline)"
-                    pacman -U --noconfirm $pkg
-                else
-                    _c_c_s_msg error "no r8168 package in folder $dir!"
-                fi
-            else
-                # Install r8168 package from the mirrors.
-                _install_needed_packages r8168
-            fi
-        fi
-        
     fi
+    
+    
+    # Handle the r8168 package.
+    if [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel installed
+        # We must install r8168 now.
+        _install_needed_packages r8168-lts
+        if _is_offline_mode ; then
+            # Install using the copied r8168 package.
+            pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+            if [ -n "$pkg" ] ; then
+                _pkg_msg install "r8168 (offline)"
+                pacman -U --noconfirm $pkg
+            else
+                _c_c_s_msg error "no r8168 package in folder $dir!"
+            fi
+        else
+            # Install r8168 package from the mirrors.
+            _install_needed_packages r8168
+        fi
+    fi
+    
 }
 
 _install_more_firmware() {
