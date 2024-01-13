@@ -316,7 +316,7 @@ _install_extra_drivers_to_target() {
     local dir=/opt/extra-drivers
     local pkg
     
-    if [[ $(lspci | grep -qi 'Ethernet.*Realtek.*8168'; echo $?) -eq 0 ]]; then
+    if [ -r /tmp/r8168_in_use ] ; then
         
         # Handle the r8168 package.
         if ! [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel not installed
