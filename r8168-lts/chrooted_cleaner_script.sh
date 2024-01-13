@@ -316,7 +316,7 @@ _install_extra_drivers_to_target() {
     local dir=/opt/extra-drivers
     local pkg
     
-    if test -e /tmp/r8168_in_use; then
+    if [[ $(test -e /tmp/r8168_in_use) ]]; then
     echo "File exists."
     # Your additional logic here
     else
