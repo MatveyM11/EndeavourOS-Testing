@@ -317,9 +317,9 @@ _install_extra_drivers_to_target() {
     local pkg
     
     if [ -r /tmp/r8168_in_use ]; then
-         echo "YEP, Realtek8168 is found!" > detected.md
+         echo "YEP, Realtek8168 is found!" 
     else
-        echo "Realtek8168 not found." > detected.md
+        echo "Realtek8168 not found." 
     fi
     
     # Handle the r8168 package.
