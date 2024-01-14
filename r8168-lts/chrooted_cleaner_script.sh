@@ -316,34 +316,24 @@ _install_extra_drivers_to_target() {
     local dir=/opt/extra-drivers
     local pkg
     
-    if [ -r /tmp/r8168_in_use ]; then
-        
-        # Handle the r8168 package.
-        if ! [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel not installed
-            # We must install r8168 now.
-            _install_needed_packages r8168
-            if _is_offline_mode ; then
-                # Install using the copied r8168 package.
-                pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
-                if [ -n "$pkg" ] ; then
-                    _pkg_msg install "r8168 (offline)"
-                    pacman -U --noconfirm $pkg
-                else
-                    _c_c_s_msg error "no r8168 package in folder $dir!"
-                fi
+    # Handle the r8168 package.
+    if [ -r /tmp/r8168_in_use ] ; then
+        # We must install r8168 now.
+        if _is_offline_mode ; then
+            # Install using the copied r8168 package.
+            pkg="$(/usr/bin/ls -1 $dir/r8168-*-x86_64.pkg.tar.zst)"
+            if [ -n "$pkg" ] ; then
+                _pkg_msg install "r8168 (offline)"
+                pacman -U --noconfirm $pkg
             else
-                # Install r8168 package from the mirrors.
-                _install_needed_packages r8168
+                _c_c_s_msg error "no r8168 package in folder $dir!"
             fi
+        else
+            # Install r8168 package from the mirrors.
+            _install_needed_packages r8168
+            # Handle the r8168-lts package if LTS is installed.
+            [[ $(pacman -Q linux-lts  2</dev/null) ]] &&  _install_needed_packages r8168-lts
         fi
-        
-        
-        # Handle the r8168 package.
-        if [[ $(pacman -Q linux-lts  2</dev/null) ]] ; then # if lts-kernel installed
-            # We must install r8168 now.
-            _install_needed_packages r8168-lts
-        fi
-        
     fi
 }
 
@@ -404,11 +394,23 @@ _run_if_exists_or_complain() {
 }
 
 _RunUserCommands() {
-    local usercmdfile=/tmp/user_commands.bash
-    if [ -r $usercmdfile ] ; then
-        _c_c_s_msg info "running script $(basename $usercmdfile)"
-        bash $usercmdfile $NEW_USER
-    fi
+    # Executes only the first of: user-commands-end.bash, user_commands.bash (if found).
+    local usercmdfile
+    
+    for usercmdfile in /tmp/user-commands-end.bash   /tmp/user_commands.bash
+    do
+        if [ -e $usercmdfile ] ; then
+            _c_c_s_msg info "running script ${usercmdfile##*/}"
+            
+            # ad hoc validity check
+            case "$NEW_USER" in
+                offline | online | community) _c_c_s_msg suspicious "${usercmdfile##*/} called with parameter '$NEW_USER'" ;;
+            esac
+            
+            bash $usercmdfile $NEW_USER
+            break
+        fi
+    done
 }
 
 _misc_cleanups() {
